@@ -5,7 +5,7 @@ project(LearnIBL)
 option(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
 option(ASSIMP_BUILD_SAMPLES OFF)
 option(ASSIMP_BUILD_TESTS OFF)
-add_subdirectory(Glitter/Vendor/assimp)
+add_subdirectory(modules/assimp)
 
 option(GLFW_BUILD_DOCS OFF)
 option(GLFW_BUILD_EXAMPLES OFF)
@@ -28,7 +28,7 @@ include_directories(include/
                     modules/glm/)
 
 file(GLOB VENDORS_SOURCES modules/glad/src/glad.c)
-file(GLOB PROJECT_HEADERS inglude/*.h)
+file(GLOB PROJECT_HEADERS include/*.h)
 file(GLOB PROJECT_SOURCES src/*.cpp)
 file(GLOB PROJECT_SHADERS shaders/*.vs
 						  shaders/*.fs)

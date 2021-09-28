@@ -1,12 +1,17 @@
 [submodule "modules/assimp"]
 	path = modules/assimp
 	url = https://github.com/assimp/assimp.git
+	branch = master
 [submodule "modules/glad"]
 	path = modules/glad
 	url = https://github.com/Dav1dde/glad.git
+	branch = c
 [submodule "modules/glfw"]
 	path = modules/glfw
 	url = https://github.com/glfw/glfw.git
+	branch = master
 [submodule "modules/glm"]
 	path = modules/glm
 	url = https://github.com/g-truc/glm.git
+	branch = master
+	
