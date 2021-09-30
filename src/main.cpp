@@ -89,11 +89,14 @@ int main()
 	glDepthFunc(GL_LEQUAL); // set depth function to less than AND equal for skybox depth trick.
 
 	//load model
-	string model_path = "../resource/bunny_40k.obj";
+
+	string resource_path = "../../../resource/";
+	string model_path = resource_path + "model/bunny_40k.obj";
 	pModel = new Model(model_path.c_str());
 
 	//load hdr environment map
-	unsigned int texture_hdr = loadTextureHdr("../resource/environment_map/Ice_Lake/Ice_Lake_Ref.hdr");
+	string hdr_path = resource_path + "environment_map/Ice_Lake/Ice_Lake_Ref.hdr";
+	unsigned int texture_hdr = loadTextureHdr(hdr_path.c_str());
 	//unsigned int texture_hdr = loadTextureHdr("../resource/environment_map/Ueno-Shrine/03-Ueno-Shrine_3k.hdr");
 
 	//setup framebuffer
