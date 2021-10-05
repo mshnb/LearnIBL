@@ -4,19 +4,21 @@ in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
 
-// material parameters
-uniform sampler2D texture_basecolor1;
-uniform sampler2D texture_normalcamera1;
-uniform sampler2D texture_metalness1;
-uniform sampler2D texture_roughness1;
-uniform sampler2D texture_ao1;
-
-uniform vec3 albedo;
-uniform float metallic;
-uniform float roughness;
-
 // IBL
 uniform samplerCube irradianceMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
+
+// material parameters
+//uniform sampler2D texture_basecolor1;
+//uniform sampler2D texture_normalcamera1;
+//uniform sampler2D texture_metalness1;
+//uniform sampler2D texture_roughness1;
+//uniform sampler2D texture_ao1;
+
+uniform vec3 basecolor;
+uniform float metallic;
+uniform float roughness;
 
 // lights
 uniform vec3 lightPositions[4];
@@ -32,7 +34,7 @@ const float PI = 3.14159265359;
 // technique somewhere later in the normal mapping tutorial.
 vec3 getNormalFromMap()
 {
-    vec3 tangentNormal = texture(texture_normalcamera1, TexCoords).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = vec3(0,0,1);//texture(texture_normalcamera1, TexCoords).xyz * 2.0 - 1.0;
 
     vec3 Q1  = dFdx(WorldPos);
     vec3 Q2  = dFdy(WorldPos);
@@ -95,7 +97,7 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 
 void main()
 {
-    vec3 albedo       = pow(albedo, vec3(2.2));
+    vec3 albedo       = pow(basecolor, vec3(2.2));
     //float metallic  = texture(texture_metalness1, TexCoords).r;
     //float roughness = texture(texture_roughness1, TexCoords).r;
     //float ao        = texture(texture_ao1, TexCoords).r;
@@ -146,15 +148,24 @@ void main()
         // add to outgoing radiance Lo
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;  // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
     }   
-    
-    //use IBL as the ambient term
-    vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+
+    // ambient lighting (we now use IBL as the ambient term)
+    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    vec3 kS = F;
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - metallic;
     
     vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * albedo;
-    vec3 ambient = kD * diffuse; // * ao
+
+    //sample both the pre-filter map and the brdf LUT
+    //then combine them together as per the split-sum approximation to get the IBL specular part
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+    vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
+    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
+
+    vec3 ambient = kD * diffuse + specular; // * ao
     vec3 color = Lo + ambient;
 
     // HDR tonemapping

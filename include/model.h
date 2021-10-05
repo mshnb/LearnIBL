@@ -41,6 +41,14 @@ public:
 		loadModel(path);
 	}
 
+	int getTextureCount()
+	{
+		int count = 0;
+		for (unsigned int i = 0; i < meshes.size(); i++)
+			count += meshes[i].textures.size();
+		return count + extra_textures.size();
+	}
+
 	void loadExtraTextures(const char* str, aiTextureType type, string typeName)
 	{
 		bool skip = false;
