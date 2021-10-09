@@ -16,9 +16,16 @@ uniform sampler2D brdfLUT;
 //uniform sampler2D texture_roughness1;
 //uniform sampler2D texture_ao1;
 
-uniform vec3 basecolor;
-uniform float metallic;
-uniform float roughness;
+uniform sampler2D albedoMap;
+uniform sampler2D normalMap;
+uniform sampler2D metallicMap;
+uniform sampler2D roughnessMap;
+uniform sampler2D aoMap;
+uniform sampler2D emissiveMap;
+
+//uniform vec3 basecolor;
+//uniform float metallic;
+//uniform float roughness;
 
 // lights
 uniform vec3 lightPositions[4];
@@ -34,7 +41,7 @@ const float PI = 3.14159265359;
 // technique somewhere later in the normal mapping tutorial.
 vec3 getNormalFromMap()
 {
-    vec3 tangentNormal = vec3(0,0,1);//texture(texture_normalcamera1, TexCoords).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(normalMap, TexCoords).xyz * 2.0 - 1.0;
 
     vec3 Q1  = dFdx(WorldPos);
     vec3 Q2  = dFdy(WorldPos);
@@ -97,12 +104,12 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 
 void main()
 {
-    vec3 albedo       = pow(basecolor, vec3(2.2));
-    //float metallic  = texture(texture_metalness1, TexCoords).r;
-    //float roughness = texture(texture_roughness1, TexCoords).r;
-    //float ao        = texture(texture_ao1, TexCoords).r;
+    vec3 albedo     = pow(texture(albedoMap, TexCoords).rgb, vec3(2.2));
+    float metallic  = texture(metallicMap, TexCoords).r;
+    float roughness = texture(roughnessMap, TexCoords).r;
+    float ao        = texture(aoMap, TexCoords).r;
 
-    vec3 N = Normal;//getNormalFromMap();
+    vec3 N = getNormalFromMap();
     vec3 V = normalize(camPos - WorldPos);
     vec3 R = reflect(-V, N);
 
@@ -165,7 +172,7 @@ void main()
     vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
-    vec3 ambient = kD * diffuse + specular; // * ao
+    vec3 ambient = (kD * diffuse + specular);//* ao
     vec3 color = Lo + ambient;
 
     // HDR tonemapping
@@ -173,5 +180,6 @@ void main()
     // gamma correct
     color = pow(color, vec3(1.0/2.2)); 
 
-    FragColor = vec4(color, 1.0);
+    vec3 emissive = texture(emissiveMap, TexCoords).rgb;
+    FragColor = vec4(color + emissive, 1.0);
 }

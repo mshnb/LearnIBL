@@ -19,8 +19,9 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_click_callback(GLFWwindow* window, int button, int action, int mods);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
+unsigned int loadTexture(string& path);
 unsigned int loadTexture(const char* path);
-unsigned int loadTextureHdr(const char* path);
+unsigned int loadTextureHdr(string& path);
 void renderSphere();
 void renderCube();
 void renderQuad();
@@ -44,8 +45,6 @@ Model* pModel = NULL;
 
 int main()
 {
-	stbi_set_flip_vertically_on_load(true);
-
 	// glfw: initialize and configure
 	// ------------------------------
 	glfwInit();
@@ -105,7 +104,15 @@ int main()
 	pbrShader.setInt("irradianceMap", 0);//将irradianceMap采样器绑定到0号纹理单元
 	pbrShader.setInt("prefilterMap", 1);
 	pbrShader.setInt("brdfLUT", 2);
-	pbrShader.setVec3("basecolor", 0.97f, 0.96f, 0.91f);
+
+	pbrShader.setInt("albedoMap", 3);
+	pbrShader.setInt("normalMap", 4);
+	pbrShader.setInt("metallicMap", 5);
+	pbrShader.setInt("roughnessMap", 6);
+	pbrShader.setInt("aoMap", 7);
+	pbrShader.setInt("emissiveMap", 8);
+
+	//pbrShader.setVec3("basecolor", 0.97f, 0.96f, 0.91f);
 
 	backgroundShader.use();
 	backgroundShader.setInt("environmentMap", 0);
@@ -118,27 +125,42 @@ int main()
 		glm::vec3(-10.0f, -10.0f, 10.0f),
 		glm::vec3(10.0f, -10.0f, 10.0f),
 	};
+
+// 	glm::vec3 lightColors[] = {
+// 		glm::vec3(300.0f, 300.0f, 300.0f),
+// 		glm::vec3(300.0f, 300.0f, 300.0f),
+// 		glm::vec3(300.0f, 300.0f, 300.0f),
+// 		glm::vec3(300.0f, 300.0f, 300.0f)
+// 	};
+
 	glm::vec3 lightColors[] = {
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f)
+	glm::vec3(600.0f),
+	glm::vec3(600.0f),
+	glm::vec3(600.0f),
+	glm::vec3(600.0f)
 	};
-	int nrRows = 7;
-	int nrColumns = 7;
+
+	int nrRows = 1;//7;
+	int nrColumns = 1;// 7;
 	float spacing = 2.5;
 
+	stbi_set_flip_vertically_on_load(true);
 	//load model
-	string resource_path = "../../../resource/";
-	string model_path = resource_path + "model/bunny_40k.obj";
-	pModel = new Model(model_path.c_str());
+	string resource_path = "../../../resource/model/pokeball/";
+	pModel = new Model(resource_path + "source/POKEBALLsketchfab.fbx", true);//use textures outside fbx
 
-	//int modelTextureCount = pModel->getTextureCount();
+	//load pbr material textures
+	unsigned int albedoMap = loadTexture(resource_path + "textures/POKEBALL_low_pokeball_BaseColor.png");
+	unsigned int normalMap = loadTexture(resource_path + "textures/POKEBALL_low_pokeball_Normal.png");
+	unsigned int metallicMap = loadTexture(resource_path + "textures/POKEBALL_low_pokeball_Metallic.png");
+	unsigned int roughnessMap = loadTexture(resource_path + "textures/POKEBALL_low_pokeball_Roughness.png");
+	unsigned int aoMap = loadTexture(resource_path + "textures/internal_ground_ao_texture.jpeg");
+	unsigned int emissiveMap = loadTexture(resource_path + "textures/POKEBALL_low_pokeball_Emissive.png");
 
 	//load hdr environment map
-	string hdr_path = resource_path + "environment_map/Ice_Lake/Ice_Lake_Ref.hdr";
-	//string hdr_path = resource_path + "environment_map/Ueno-Shrine/03-Ueno-Shrine_3k.hdr";
-	unsigned int hdrTexture = loadTextureHdr(hdr_path.c_str());
+	//string hdr_path = "../../../resource/environment_map/Ice_Lake/Ice_Lake_Ref.hdr";
+	string hdr_path = "../../../resource/environment_map/Ueno-Shrine/03-Ueno-Shrine_3k.hdr";
+	unsigned int hdrTexture = loadTextureHdr(hdr_path);
 
 	//setup framebuffer
 	unsigned int captureFBO;
@@ -336,7 +358,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glm::mat4 view = camera.GetViewMatrix();
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 200.0f);
 
 		pbrShader.use();
 		pbrShader.setMat4("view", view);
@@ -351,17 +373,31 @@ int main()
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
 
+		//material textures
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, albedoMap);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, normalMap);
+		glActiveTexture(GL_TEXTURE5);
+		glBindTexture(GL_TEXTURE_2D, metallicMap);
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_2D, roughnessMap);
+		glActiveTexture(GL_TEXTURE7);
+		glBindTexture(GL_TEXTURE_2D, aoMap);
+		glActiveTexture(GL_TEXTURE8);
+		glBindTexture(GL_TEXTURE_2D, emissiveMap);
+
 		//shader.setFloat("ior", 0.2f);
 		// render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
 		glm::mat4 model = glm::mat4(1.0f);
 		for (int row = 0; row < nrRows; ++row)
 		{
-			pbrShader.setFloat("metallic", (float)row / (float)nrRows);
+			//pbrShader.setFloat("metallic", (float)row / (float)nrRows);
 			for (int col = 0; col < nrColumns; ++col)
 			{
 				// we clamp the roughness to 0.05 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
 				// on direct lighting.
-				pbrShader.setFloat("roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
+				//pbrShader.setFloat("roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
 
 				model = glm::mat4(1.0f);
 				model = glm::translate(model, glm::vec3(
@@ -369,7 +405,8 @@ int main()
 					(row - (nrRows / 2)) * spacing,
 					0.0f
 				));
-				model = glm::scale(model, glm::vec3(5.0f));
+				model = glm::translate(model, glm::vec3(-50.0f, 0.0f, -35.0f));
+				model = glm::scale(model, glm::vec3(0.1f));
 				pbrShader.setMat4("model", model);
 				pModel->Draw(pbrShader);
 				//renderSphere();
@@ -390,10 +427,9 @@ int main()
 
 			model = glm::mat4(1.0f);
 			model = glm::translate(model, newPos);
-			model = glm::scale(model, glm::vec3(0.5f));
+			model = glm::scale(model, glm::vec3(0.25f));
 			pbrShader.setMat4("model", model);
 			renderSphere();
-			//renderCube();
 		}
 
 		// render skybox (render as last to prevent overdraw)
@@ -692,6 +728,11 @@ void renderQuad()
 }
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
+unsigned int loadTexture(string& path)
+{
+	return loadTexture(path.c_str());
+}
+
 unsigned int loadTexture(char const* path)
 {
 	unsigned int textureID;
@@ -729,12 +770,12 @@ unsigned int loadTexture(char const* path)
 	return textureID;
 }
 
-unsigned int loadTextureHdr(char const* path)
+unsigned int loadTextureHdr(string& path)
 {
 	unsigned int textureID;
 
 	int width, height, nrComponents;
-	float* data = stbi_loadf(path, &width, &height, &nrComponents, 0);
+	float* data = stbi_loadf(path.c_str(), &width, &height, &nrComponents, 0);
 	if (data)
 	{
 		glGenTextures(1, &textureID);
@@ -751,7 +792,7 @@ unsigned int loadTextureHdr(char const* path)
 	}
 	else
 	{
-		std::cout << "Hdr texture failed to load at path: " << path << std::endl;
+		std::cout << "Hdr texture failed to load at path: " << path.c_str() << std::endl;
 	}
 
 	return textureID;
